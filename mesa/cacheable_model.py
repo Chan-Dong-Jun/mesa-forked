@@ -120,7 +120,7 @@ class CacheableModel:
         # Save DataFrame to Parquet
         df.to_parquet(filename)
 
-    def read_grid_state(self, filename: str, model=None):
+    def read_grid_state(self, wfilename: str, model=None):
         """Read the grid state from a Parquet file and reconstruct the grid with agents."""
         # Load DataFrame from Parquet
         df = pd.read_parquet(filename)
