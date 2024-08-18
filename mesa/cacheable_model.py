@@ -159,7 +159,7 @@ class CacheableModel:
             self._save_to_parquet(self.model)
             self._last_cached_step = self.model._steps
 
-        if self.condition_function and self.save_special_results(
+        if self.condition_function and self.save_critical_result(
                 self.condition_function
         ):
             pass
@@ -209,3 +209,27 @@ class CacheableModel:
         except FileNotFoundError as e:
             print(e)
             return None, None
+
+    def save_critical_result(self, condition_function: Callable[[dict], bool]):
+        model_vars = self.model.datacollector.model_vars
+        self.cache_file_path.mkdir(parents=True, exist_ok=True)
+
+        current_step = self.model._steps
+        special_results_file = f"{self.cache_file_path}/special_results.parquet"
+        if condition_function(model_vars):
+            step_data = {key: [value[-1]] for key, value in model_vars.items()}
+            step_data["Step"] = current_step
+            special_results_df = pd.DataFrame(step_data)
+
+            # Append the current step data to the Parquet file
+            if os.path.exists(special_results_file):
+                existing_data = pq.read_table(special_results_file).to_pandas()
+                combined_data = pd.concat(
+                    [existing_data, special_results_df], ignore_index=True
+                )
+                special_results_table = pa.Table.from_pandas(combined_data)
+            else:
+                special_results_table = pa.Table.from_pandas(special_results_df)
+
+            pq.write_table(special_results_table, special_results_file)
+
