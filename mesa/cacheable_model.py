@@ -93,7 +93,6 @@ class CacheableModel:
         agent_df = self.get_agent_vars_dataframe()
         padding = len(str(self._total_steps)) - 1
 
-        # ceiling function
         model_file = f"{self.cache_file_path}/model_data_{-(self.model._steps // -self._cache_interval):0{padding}}.parquet"
         agent_file = f"{self.cache_file_path}/agent_data_{-(self.model._steps // -self._cache_interval):0{padding}}.parquet"
 
