@@ -12,7 +12,8 @@ from pathlib import Path
 from typing import Optional, Callable
 import pandas as pd
 
-from mesa import Model
+from mesa import Model, Agent
+from mesa.space import MultiGrid as Grid
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -233,3 +234,50 @@ class CacheableModel:
 
             pq.write_table(special_results_table, special_results_file)
 
+    def get_grid_dataframe(self, cache_file_path: str = None):
+        grid_state = {
+            'width': self.model.grid.width,
+            'height': self.model.grid.height,
+            'agents': []
+        }
+        for x in range(grid_state['width']):
+            for y in range(grid_state['height']):
+                cell_contents = self.model.grid._grid[x][y]
+                if cell_contents:
+                    if not hasattr(cell_contents, "__iter__"):
+                        cell_contents = [cell_contents]
+                    for agent in cell_contents:
+                        agent_state = {
+                            'pos_x': agent.pos[0],
+                            'pos_y': agent.pos[1],
+                            'unique_id': agent.unique_id,
+                            'wealth': agent.wealth,
+                            # **agent.__dict__
+                        }
+                        grid_state['agents'].append(agent_state)
+        padding = len(str(self._total_steps)) - 1
+        filename = f"{self.cache_file_path}/grid_data_{(self.model._steps):0{padding}}.parquet"
+
+        # Convert to DataFrame
+        df = pd.DataFrame(grid_state['agents'])
+
+        # Save DataFrame to Parquet
+        df.to_parquet(filename)
+
+    @staticmethod
+    def reconstruct_grid(filename, *attributes_list):
+        # Load the DataFrame from Parquet
+        df = pd.read_parquet(filename)
+
+        # Create a new Grid instance
+        width = df['pos_x'].max() + 1  # Assuming positions start from 0
+        height = df['pos_y'].max() + 1  # Assuming positions start from 0
+        grid = Grid(width, height, False)
+
+        # Add agents to the grid
+        for _, row in df.iterrows():
+            agent = Agent(row['unique_id'], Model(100, 10, 10))
+            agent.wealth = row["wealth"]
+            grid.place_agent(agent, (row['pos_x'], row['pos_y']))
+
+        return grid
