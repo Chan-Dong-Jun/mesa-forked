@@ -31,6 +31,7 @@ from solara.alias import rv
 
 import mesa.visualization.components.altair as components_altair
 import mesa.visualization.components.matplotlib as components_matplotlib
+import mesa.visualization_caching.components.matplotlib as components_matplotlib
 from mesa.visualization.UserParam import Slider
 
 
