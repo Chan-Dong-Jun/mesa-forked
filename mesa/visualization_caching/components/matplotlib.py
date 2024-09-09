@@ -7,12 +7,17 @@ import mesa
 
 from mesa import CacheableModel
 
+# TODO: Check these imports
+import glob
+import pyarrow.parquet as pq
+import pandas as pd
+
 @solara.component
 def SpaceMatplotlib(model, agent_portrayal, dependencies: list[any] | None = None):
     space_fig = Figure()
     space_ax = space_fig.subplots()
 
-    space = CacheableModel.reconstruct_grid(f'output_dir/grid_data_{(model._steps + 1):0{3}}.parquet')
+    space = CacheableModel.reconstruct_grid(f'output_dir/grid_data_{(model._steps + 1):0{3}}.parquet') # TODO: Change the way to index the cached files
     print(f'output_dir/grid_data_{(model._steps + 1):0{3}}.parquet')
     if space is None:
         # Sometimes the space is defined as model.space instead of model.grid
@@ -120,7 +125,16 @@ def _draw_continuous_space(space, space_ax, agent_portrayal):
 def PlotMatplotlib(model, measure, dependencies: list[any] | None = None):
     fig = Figure()
     ax = fig.subplots()
-    df = model.datacollector.get_model_vars_dataframe()
+
+    # TODO: Check
+    model_files = glob.glob(f"output_dir/model_data_*.parquet")
+    model_dfs = []
+    for model_file in model_files:
+        table = pq.read_table(model_file)
+        df = table.to_pandas()
+        model_dfs.append(df)
+    df = pd.concat(model_dfs, ignore_index=True)[:model._steps+1]
+
     if isinstance(measure, str):
         ax.plot(df.loc[:, measure])
         ax.set_ylabel(measure)

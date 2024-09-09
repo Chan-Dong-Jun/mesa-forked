@@ -37,6 +37,9 @@ from mesa.visualization.UserParam import Slider
 
 # TODO: Turn this function into a Solara component once the current_step.value
 # dependency is passed to measure()
+# def Card(
+#     model, measures, agent_portrayal, space_drawer, dependencies, color, layout_type
+# ): # TODO: remember to remove after completing edit
 def Card(
     model, measures, agent_portrayal, space_drawer, dependencies, color, layout_type
 ):
@@ -78,7 +81,7 @@ def Card(
             if callable(measure):
                 # Is a custom object
                 measure(model)
-            else:
+            else: # TODO: remember to remove after completing edit
                 components_matplotlib.PlotMatplotlib(
                     model, measure, dependencies=dependencies
                 )

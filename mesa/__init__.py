@@ -12,7 +12,7 @@ from mesa.agent import Agent
 from mesa.batchrunner import batch_run
 from mesa.datacollection import DataCollector
 from mesa.model import Model
-from cacheable_model import CacheableModel  #TODO
+from mesa.cacheable_model import CacheableModel  #TODO
 
 __all__ = [
     "Model",
