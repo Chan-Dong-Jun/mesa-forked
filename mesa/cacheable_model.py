@@ -281,3 +281,7 @@ class CacheableModel:
             grid.place_agent(agent, (row['pos_x'], row['pos_y']))
 
         return grid
+
+    def get_continuous_space(self):
+        pass
+
