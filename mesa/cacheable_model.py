@@ -282,6 +282,22 @@ class CacheableModel:
 
         return grid
 
-    def get_continuous_space(self):
-        pass
+    def get_data(self, parameters):
+        agent_dict = list(self.model.agents_.values())
+        complete_row_data_deserialized = []
+        for key, val in agent_dict[0].items():
+            complete_row_data_deserialized.append(key.__dict__)
+        boids_data = []
+        for row_record in complete_row_data_deserialized:
+            clean_row_data = {}
+            for param in parameters:
+                clean_row_data[param] = row_record[param]
+            boids_data.append(clean_row_data)
+        boids_table = pa.Table.from_pylist(boids_data)
+        padding = len(str(self._total_steps)) - 1
+
+        filename = f"{self.cache_file_path}/grid_data_{self.model._steps:0{padding}}.parquet"
+
+        pq.write_table(boids_table, filename)
+        return boids_data
 
