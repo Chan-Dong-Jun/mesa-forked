@@ -197,7 +197,7 @@ class CacheableModel:
         else:
             raise FileNotFoundError("No agent data files found.")
 
-    def combine_dataframes(self):
+    def read_combine_dataframes(self):
         """Combine and return the model and agent DataFrames."""
         try:
             model_df = self.read_model_data()
@@ -234,70 +234,93 @@ class CacheableModel:
 
             pq.write_table(special_results_table, special_results_file)
 
-    def get_grid_dataframe(self, cache_file_path: str = None):
-        grid_state = {
-            'width': self.model.grid.width,
-            'height': self.model.grid.height,
-            'agents': []
-        }
-        for x in range(grid_state['width']):
-            for y in range(grid_state['height']):
-                cell_contents = self.model.grid._grid[x][y]
-                if cell_contents:
-                    if not hasattr(cell_contents, "__iter__"):
-                        cell_contents = [cell_contents]
-                    for agent in cell_contents:
-                        agent_state = {
-                            'pos_x': agent.pos[0],
-                            'pos_y': agent.pos[1],
-                            'unique_id': agent.unique_id,
-                            'wealth': agent.wealth,
-                            # **agent.__dict__
-                        }
-                        grid_state['agents'].append(agent_state)
-        padding = len(str(self._total_steps)) - 1
-        filename = f"{self.cache_file_path}/grid_data_{(self.model._steps):0{padding}}.parquet"
+    # def get_grid_dataframe(self, cache_file_path: str = None):
+    #     grid_state = {
+    #         'width': self.model.grid.width,
+    #         'height': self.model.grid.height,
+    #         'agents': []
+    #     }
+    #     for x in range(grid_state['width']):
+    #         for y in range(grid_state['height']):
+    #             cell_contents = self.model.grid._grid[x][y]
+    #             if cell_contents:
+    #                 if not hasattr(cell_contents, "__iter__"):
+    #                     cell_contents = [cell_contents]
+    #                 for agent in cell_contents:
+    #                     agent_state = {
+    #                         'pos_x': agent.pos[0],
+    #                         'pos_y': agent.pos[1],
+    #                         'unique_id': agent.unique_id,
+    #                         'wealth': agent.wealth,
+    #                         # **agent.__dict__
+    #                     }
+    #                     grid_state['agents'].append(agent_state)
+    #     padding = len(str(self._total_steps)) - 1
+    #     filename = f"{self.cache_file_path}/grid_data_{(self.model._steps):0{padding}}.parquet"
+    #
+    #     # Convert to DataFrame
+    #     df = pd.DataFrame(grid_state['agents'])
+    #
+    #     # Save DataFrame to Parquet
+    #     df.to_parquet(filename)
 
-        # Convert to DataFrame
-        df = pd.DataFrame(grid_state['agents'])
+    # @staticmethod
+    # def reconstruct_grid(filename, *attributes_list):
+    #     # Load the DataFrame from Parquet
+    #     df = pd.read_parquet(filename)
+    #
+    #     # Create a new Grid instance
+    #     width = df['pos_x'].max() + 1  # Assuming positions start from 0
+    #     height = df['pos_y'].max() + 1  # Assuming positions start from 0
+    #     grid = Grid(width, height, False)
+    #
+    #     # Add agents to the grid
+    #     for _, row in df.iterrows():
+    #         agent = Agent(row['unique_id'], Model(100, 10, 10))
+    #         agent.wealth = row["wealth"]
+    #         grid.place_agent(agent, (row['pos_x'], row['pos_y']))
+    #
+    #     return grid
 
-        # Save DataFrame to Parquet
-        df.to_parquet(filename)
+    # def get_data(self, parameters):
+    #     agent_dict = list(self.model.agents_.values())
+    #     complete_row_data_deserialized = []
+    #     for key, val in agent_dict[0].items():
+    #         complete_row_data_deserialized.append(key.__dict__)
+    #     boids_data = []
+    #     for row_record in complete_row_data_deserialized:
+    #         clean_row_data = {}
+    #         for param in parameters:
+    #             clean_row_data[param] = row_record[param]
+    #         boids_data.append(clean_row_data)
+    #     boids_table = pa.Table.from_pylist(boids_data)
+    #     padding = len(str(self._total_steps)) - 1
+    #
+    #     filename = f"{self.cache_file_path}/grid_data_{self.model._steps:0{padding}}.parquet"
+    #
+    #     pq.write_table(boids_table, filename)
+    #     return boids_data
 
-    @staticmethod
-    def reconstruct_grid(filename, *attributes_list):
-        # Load the DataFrame from Parquet
-        df = pd.read_parquet(filename)
-
-        # Create a new Grid instance
-        width = df['pos_x'].max() + 1  # Assuming positions start from 0
-        height = df['pos_y'].max() + 1  # Assuming positions start from 0
-        grid = Grid(width, height, False)
-
-        # Add agents to the grid
-        for _, row in df.iterrows():
-            agent = Agent(row['unique_id'], Model(100, 10, 10))
-            agent.wealth = row["wealth"]
-            grid.place_agent(agent, (row['pos_x'], row['pos_y']))
-
-        return grid
-
-    def get_data(self, parameters):
-        agent_dict = list(self.model.agents_.values())
+    def cache_grid_data(self, parameters):
+        output_dir = 'output_dir'  # TODO: Change in the future to support default dir
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            
+        agent_dict = list(self.model._agents.keys())
         complete_row_data_deserialized = []
-        for key, val in agent_dict[0].items():
-            complete_row_data_deserialized.append(key.__dict__)
-        boids_data = []
+        for i in agent_dict:
+            complete_row_data_deserialized.append(i.__dict__)
+        grid_data = []
         for row_record in complete_row_data_deserialized:
             clean_row_data = {}
             for param in parameters:
                 clean_row_data[param] = row_record[param]
-            boids_data.append(clean_row_data)
-        boids_table = pa.Table.from_pylist(boids_data)
+            grid_data.append(clean_row_data)
+        df_table = pa.Table.from_pylist(grid_data)
         padding = len(str(self._total_steps)) - 1
 
-        filename = f"{self.cache_file_path}/grid_data_{self.model._steps:0{padding}}.parquet"
+        filename = f"{self.cache_file_path}/grid_data_{self.model.steps:0{padding}}.parquet"
 
-        pq.write_table(boids_table, filename)
-        return boids_data
+        pq.write_table(df_table, filename)
+        return grid_data
 
